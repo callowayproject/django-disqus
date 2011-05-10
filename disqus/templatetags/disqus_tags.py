@@ -24,7 +24,10 @@ class ContextSetterNode(template.Node):
         try:
             var_value = template.Variable(value).resolve(context)
         except template.VariableDoesNotExist:
-            var_value = self.var_value.var
+            try:
+                var_value = self.var_value.var
+            except AttributeError:
+                var_value = self.var_value
         return var_value
     
     def render(self, context):
