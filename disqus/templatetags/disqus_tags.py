@@ -6,6 +6,11 @@ from django.utils.encoding import force_unicode
 
 register = template.Library()
 
+VALID_SIZES = {'small':24, 'medium': 32, 'large':48, 'x-large': 96, 'ginormous': 128}
+VALID_TRUE = ['1', 'True', 'true', 'T', 't', 1, True]
+VALID_COLORS = ['blue', 'grey', 'green', 'red', 'orange']
+VALID_TABS = ['people', 'recent', 'popular']
+
 class ContextSetterNode(template.Node):
     def __init__(self, var_name, var_value):
         self.var_name = var_name
@@ -90,6 +95,76 @@ def disqus_num_replies(context, shortname=''):
         'config': get_config(context),
     }
 
+def disqus_combination_widget(context, shortname='', num_items=5, 
+    hide_mods=False, color="blue", default_tab="people", excerpt_length=200):
+    """
+    Return the HTML code to display the combination widget
+    """
+    shortname = getattr(settings, 'DISQUS_WEBSITE_SHORTNAME', shortname)
+    if color not in VALID_COLORS:
+        color = VALID_COLORS[0]
+    if default_tab not in VALID_TABS:
+        default_tab = VALID_TABS[0]
+    return {
+        'shortname': shortname,
+        'num_items': int(num_items),
+        'hide_mods': int(hide_mods in VALID_TRUE),
+        'color': color,
+        'default_tab': default_tab,
+        'excerpt_length': int(excerpt_length),
+    }
+
+def disqus_recent_comments_widget(context, shortname='', num_items=5, 
+    hide_avatars=False, avatar_size=32, excerpt_length=200):
+    """
+    Return the HTML code to display the recent comments widget
+    """
+    shortname = getattr(settings, 'DISQUS_WEBSITE_SHORTNAME', shortname)
+    if isinstance(avatar_size, int):
+        if avatar_size not in VALID_SIZES.values():
+            avatar_size = 32
+    elif avatar_size in VALID_SIZES.keys():
+        avatar_size = VALID_SIZES[avatar_size]
+    else:
+        avatar_size = 32
+    return {
+        'shortname': shortname,
+        'num_items': int(num_items),
+        'hide_avatars': int(hide_avatars in VALID_TRUE),
+        'avatar_size': avatar_size,
+        'excerpt_length': int(excerpt_length),
+    }
+
+def disqus_popular_threads_widget(context, shortname='', num_items=5):
+    """
+    Return the HTML code to display the recent comments widget
+    """
+    shortname = getattr(settings, 'DISQUS_WEBSITE_SHORTNAME', shortname)
+    return {
+        'shortname': shortname,
+        'num_items': int(num_items),
+    }
+
+def disqus_top_commenters_widget(context, shortname='', num_items=5, 
+    hide_mods=False, hide_avatars=False, avatar_size=32):
+    """
+    Return the HTML to display the top commenters widget
+    """
+    if isinstance(avatar_size, int):
+        if avatar_size not in VALID_SIZES.values():
+            avatar_size = 32
+    elif avatar_size in VALID_SIZES.keys():
+        avatar_size = VALID_SIZES[avatar_size]
+    else:
+        avatar_size = 32
+    return {
+        'shortname': shortname,
+        'num_items': int(num_items),
+        'hide_mods': int(hide_mods in VALID_TRUE),
+        'hide_avatars': int(hide_mods in VALID_TRUE),
+        'avatar_size': avatar_size,
+    }
+
 def disqus_show_comments(context, shortname=''):
     """
     Return the HTML code to display DISQUS comments.
@@ -105,5 +180,9 @@ register.tag('set_disqus_identifier', set_disqus_identifier)
 register.tag('set_disqus_url', set_disqus_url)
 register.tag('set_disqus_title', set_disqus_title)
 register.simple_tag(disqus_dev)
+register.inclusion_tag('disqus/top_commenters_widget.html', takes_context=True)(disqus_top_commenters_widget)
+register.inclusion_tag('disqus/recent_comments_widget.html', takes_context=True)(disqus_recent_comments_widget)
+register.inclusion_tag('disqus/popular_threads_widget.html', takes_context=True)(disqus_popular_threads_widget)
+register.inclusion_tag('disqus/combo_widget.html', takes_context=True)(disqus_combination_widget)
 register.inclusion_tag('disqus/num_replies.html', takes_context=True)(disqus_num_replies)
 register.inclusion_tag('disqus/show_comments.html', takes_context=True)(disqus_show_comments)
